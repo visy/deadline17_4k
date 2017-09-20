@@ -174,8 +174,8 @@ void main()
     vec3 direction = nr(vec3(uv, 0.));
 
     if (t < 30.) fly = 0.;
-	if (t > 120.) fly = 0.;
-    if (fly == 1.) t-=30.;
+	if (t > 90.) fly = 0.;
+    if (fly == 1.) t-=29.9;
 
     float cz = t*5.9;
     
