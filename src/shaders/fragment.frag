@@ -85,17 +85,15 @@ float scene1(vec3 pos)
 {
 	rota(pos);
     float of = .3*sin(pos.z*5.5);
-    vec3 opos = pos - vec3(of, -of, cos(pos.z)*.5);
-	return sp(opos,pos);
+	return sp(pos - vec3(of, -of, cos(pos.z)*.5),pos);
 }
 
 float scene2(vec3 pos)
 {
     vec3 translate = vec3(-0.5*cos(pos.z*.01), -.2*sin(.005*pos.z*cos(pos.z*4.5+pos.z*.5+pos.z*5.)*.1), 0.);
 	rota(pos);
-    vec3 opos = pos - translate;
     hit = pos;
-	return sp(opos,pos);
+	return sp(pos - translate,pos);
 }
 
 float scene(vec3 pos) {
@@ -177,7 +175,7 @@ void main()
 
     if (t < 30.) fly = 0.;
 	if (t > 90.) fly = 0.;
-    if (fly == 1.) t-=29.9;
+    if (fly == 1.) t-=29.95;
 
     float cz = t*5.9;
     
