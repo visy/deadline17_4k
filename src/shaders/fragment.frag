@@ -76,10 +76,14 @@ float sp(vec3 opos, vec3 pos) {
 	return sdSphere(cos(opos*.2),1.1+cos(pos.z*.01+cos(pos.x*1.1)*.1)*.2)*3.91;
 }
 
-float scene1(vec3 pos)
-{
+void rota(inout vec3 pos) {
     if (fly == 1.) r(pos);
     else if (fly == 0.) r2(pos);
+}
+
+float scene1(vec3 pos)
+{
+	rota(pos);
     float of = .3*sin(pos.z*5.5);
     vec3 opos = pos - vec3(of, -of, cos(pos.z)*.5);
 	return sp(opos,pos);
@@ -88,9 +92,7 @@ float scene1(vec3 pos)
 float scene2(vec3 pos)
 {
     vec3 translate = vec3(-0.5*cos(pos.z*.01), -.2*sin(.005*pos.z*cos(pos.z*4.5+pos.z*.5+pos.z*5.)*.1), 0.);
-
-    if (fly == 1.) r(pos);
-    else if (fly == 0.) r2(pos);
+	rota(pos);
     vec3 opos = pos - translate;
     hit = pos;
 	return sp(opos,pos);
