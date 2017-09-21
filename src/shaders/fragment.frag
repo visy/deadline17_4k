@@ -22,9 +22,9 @@ void r(inout vec3 pos) {
     if (pos.z < FAR_CLIPPING_PLANE) {
         pR(pos.yx,cos(pos.z*.1+pos.z*.1)+t);
         pR(pos.xy,0.2*sin(pos.z*.2*t*.1));
-    } else {
-        pR(pos.yx,cos(pos.z*.1)+t);
     }
+    else pR(pos.yx,cos(pos.z*.1)+t);
+    
 }
 
 void r2(inout vec3 pos) {
@@ -32,7 +32,7 @@ void r2(inout vec3 pos) {
 }
 
 void r3(inout vec3 pos) {
-   pR(pos.xy,sin(pos.z*cos(t*.002+sin(pos.z*.008+(pos.y*.0001)))*.5)+t*.05);
+   pR(pos.xy,sin(pos.z*cos(t*.002+sin(pos.z*.001+(pos.z*.01)))*.5)+t*.5);
 }
 
 float celli(in vec3 p){ p = fract(p)-.5; return dot(p, p); }
@@ -82,8 +82,8 @@ float sp(vec3 opos, vec3 pos) {
 
 void rota(inout vec3 pos) {
     if (fly == 1.) r(pos);
-    else if (fly == 0.) r2(pos);
-    else if (fly == 2.) r3(pos);
+    if (fly == 0.) r2(pos);
+    if (fly == 2.) r3(pos);
 }
 
 float scene1(vec3 pos)
@@ -133,10 +133,6 @@ vec2 raymarch(vec3 position, vec3 direction)
     return vec2(FAR_CLIPPING_PLANE, acc);
 }
 
-vec3 nr(vec3 n) {
-	return normalize(n);
-}
-
 vec3 normal( in vec3 pos )
 {
     vec3 eps = vec3(.3,0.,0.)*EPSILON;
@@ -144,7 +140,7 @@ vec3 normal( in vec3 pos )
 	    sceneb(pos+eps.xyy) - sceneb(pos-eps.xyy),
 	    sceneb(pos+eps.yxy) - sceneb(pos-eps.yxy),
 	    sceneb(pos+eps.yyx) - sceneb(pos-eps.yyx) );
-	return nr(nor);
+	return normalize(nor);
 }
 
 
@@ -170,66 +166,84 @@ float orenNayarDiffuse(
   return albedo * max(0., NdotL) * (A + B * s / t) / 3.14159;
 }
 
+float fader = 1.0;
+float fader2 = 1.0;
 void main()
 {
     vec2 res = vec2(1280.,720.);
     // pixel coordinates
     vec2 uv = (-res + 2.*(gl_FragCoord.xy))/res.y;
     
-    vec3 direction = nr(vec3(uv, 0.));
+    vec3 direction = normalize(vec3(uv, 0.));
 
     if (t < 30.) fly = 0.;
-	if (t > 80.) fly = 2.;
-    if (fly == 1.) t-=30.;
+	if (t > 81.) fader=1.-(t-81.)*0.335;
+    if (t > 84.) fly = 2.;
+    if (fly >= 1.) t-=30.;
 
     float cz = t*5.9;
     
-    if (fly == 0. || fly == 2.) { 
+    if (fly == 0.) { 
         cz = 2779.;
     	NUMBER_OF_MARCH_STEPS=200;
 		DISTANCE_BIAS=.6;
     }
+
+    if (fly == 2.) {
+    	NUMBER_OF_MARCH_STEPS=300;
+		DISTANCE_BIAS=.3;
+       fader=(t-54.)*0.04;       
+       cz=1000.-((t-54.)*0.5);
+    }
+
+    if (t > 90.) { fader2-=(t-90.)*.1;}
     
+    uv*=fader;
+    uv*=fader2;
+
+    fader = clamp(fader,0.,1.);
     float FOV = t*.1;
         
-    if (fly == 0.) FOV = 55.;
-    if (fly == 2.) { FOV=55.-(t-90.)*0.5; FOV=clamp(FOV,0.1,25.); cz -= (t-90.)*0.5;}
+    if (fly == 0.) { FOV = 45.+cos(uv.x)*15.; }
+    if (fly == 2.) FOV = 5.+(uv.x-uv.y)*0.1;
 
     if (t > 25. && t <= 30.) NUMBER_OF_MARCH_STEPS-=int((t-25.)*40.);
 
 	    vec3 camera_origin = vec3(0., 1., cz);
 	vec3 lookAt = vec3(0.,1.,cz+1.);
     
-    vec3 forward = nr(lookAt-camera_origin);
-    vec3 right = nr(vec3(forward.z, 0., -forward.x ));
-    vec3 up = nr(cross(forward,right));
+    vec3 forward = normalize(lookAt-camera_origin);
+    vec3 right = normalize(vec3(forward.z, 0., -forward.x ));
+    vec3 up = normalize(cross(forward,right));
 
     
     vec3 ro = camera_origin;
-    vec3 rd = nr(forward + FOV*uv.x*right + FOV*uv.y*up);
+    vec3 rd = normalize(forward + FOV*uv.x*right + FOV*uv.y*up);
 
     vec2 result = raymarch(ro, rd);
             
     float fog = pow(1. / (1. + result.x), .2);
     
-    vec3 materialColor = vec3(0.);
-		materialColor = vec3(1.3-result.x*.01*.5,.9-cos(result.x*.1)*.5,1.*.5);
+    vec3 icecol = vec3(.6,.6,1.0);
+	vec3 materialColor = vec3(1.3-result.x*.01*.5,.9-cos(result.x*.1)*.5,1.*.5);
 
 	materialColor -= vec3(.4,4.7,8.0)*(bump(hit)+bump(hit*.2*vec3(1.,1.,4.))*1.5);
     vec3 intersection = ro + rd*result.x;
     
     vec3 nrml = normal(intersection);
-    vec3 light_dir = nr(vec3(sin(result.x*.1),.3,-1.+fly));
+    vec3 light_dir = normalize(vec3(sin(result.x*.1),.3,-1.+fly));
     vec3 ref = reflect( rd, nrml );
-	if (fly == 2.) { light_dir.x=abs(cos(t*0.5)); materialColor=vec3(.6,.6,1.0); ref*=1.5; light_dir.z = 1.; }
+	
+    if (t > 45.) { materialColor=mix(materialColor,icecol,clamp((t-45.)*0.2,0.,1.8)); }
+
     float dom = smoothstep( -.1, .9, ref.y);
     float spe = pow(clamp( dot( ref, light_dir ), 0., 1. ),32.);
 
     float diffuse = orenNayarDiffuse(light_dir,rd,nrml,.3*fly,.7*fly)-result.y*.05;
     
     vec3 light_color = vec3(1.);
-    vec3 ambient_color = vec3(1.);
+    vec3 ambient_color = light_color;
     vec3 diffuseLit = materialColor * (diffuse * light_color + ambient_color);
-    vec3 outColor = diffuseLit*fog+dom*.2+spe*.3;
-	o = vec4(outColor, 1.);
+    vec3 outColor = diffuseLit*fog+dom*.2+spe*.6;
+	o = vec4(mix(vec3(diffuse),outColor,fader), 1.)*fader2;
 }
