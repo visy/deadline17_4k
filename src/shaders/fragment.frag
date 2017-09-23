@@ -167,11 +167,13 @@ void main()
     if (fly >= 1.) t-=30.;
 
     float cz = t*5.9;
-    
+	float FOV = t*.1;
+
     if (fly == 0.) { 
         cz = 2779.;
     	NUMBER_OF_MARCH_STEPS=200;
 		DISTANCE_BIAS=.6;
+		FOV = 45.+cos(uv.x)*15.; 
     }
 
     if (fly == 2.) {
@@ -179,18 +181,14 @@ void main()
 		DISTANCE_BIAS=.3;
        fader=(t-54.)*0.04;       
        cz=1000.-((t-54.)*0.5);
+		FOV = 5.+(uv.x-uv.y)*0.1;
     }
-
-    if (t > 90.) { fader2-=(t-90.)*.1;}
-    
     uv*=fader;
     uv*=fader2;
 
+    if (t > 90.) { fader2-=(t-90.)*.1;}
+    
     fader = clamp(fader,0.,1.);
-    float FOV = t*.1;
-        
-    if (fly == 0.) { FOV = 45.+cos(uv.x)*15.; }
-    if (fly == 2.) FOV = 5.+(uv.x-uv.y)*0.1;
 
     if (t > 25. && t <= 30.) NUMBER_OF_MARCH_STEPS-=int((t-25.)*40.);
 
@@ -203,15 +201,15 @@ void main()
 
     vec2 result = raymarch(ro, rd);
             
-	vec3 materialColor = vec3(1.3-result.x*.01*.5,.9-cos(result.x*.1)*.5,1.*.5);
+	vec3 materialColor = vec3(1.3-result.x*.01*.5,.9-cos(result.x*.1)*.5,.5);
 
-	materialColor -= vec3(.4,4.7,8.0)*(bump(hit)+bump(hit*.2*vec3(1.,1.,4.))*1.5);
+	materialColor -= vec3(.4,4.7,8.)*(bump(hit)+bump(hit*.2*vec3(1.,1.,4.))*1.5);
     
     vec3 nrml = normal(ro + rd*result.x);
     vec3 light_dir = normalize(vec3(sin(result.x*.1),.3,-1.+fly));
     vec3 ref = reflect( rd, nrml );
 	
-    if (t > 45.) { materialColor=mix(materialColor,vec3(.6,.6,1.0),clamp((t-45.)*0.2,0.,1.8)); }
+    if (t > 45.) { materialColor=mix(materialColor,vec3(.6,.6,1.0),clamp((t-45.)*.2,0.,1.8)); }
 
     float dom = smoothstep( -.1, .9, ref.y);
     float spe = pow(clamp( dot( ref, light_dir ), 0., 1. ),32.);
