@@ -37,19 +37,6 @@ void r3(inout vec3 pos) {
 
 float celli(in vec3 p){ p = fract(p)-.5; return dot(p, p); }
 
-float cellTile(in vec3 p){
-    vec4 d; 
-    d.x = celli(p - vec3(.81, .62, .53));
-    p.xy = vec2(p.y-p.x, p.y + p.x)*.7071;
-    d.y = celli(p - vec3(.39, .2, .11));
-    p.yz = vec2(p.z-p.y, p.z + p.y)*.7071;
-    d.z = celli(p - vec3(.62, .24, .06));
-    p.xz = vec2(p.z-p.x, p.z + p.x)*.7071;
-    d.w = celli(p - vec3(.2, .82, .64));
-    d.xy = min(d.xz, d.yw);
-    return min(d.x, d.y)*2.66; 
-}
-
 float hex(vec2 p) {
     p.x *= 0.57735*2.;
 	p.y += mod(floor(p.x), 2.)*.5;
@@ -173,8 +160,6 @@ void main()
     vec2 res = vec2(1280.,720.);
     // pixel coordinates
     vec2 uv = (-res + 2.*(gl_FragCoord.xy))/res.y;
-    
-    vec3 direction = normalize(vec3(uv, 0.));
 
     if (t < 30.) fly = 0.;
 	if (t > 81.) fader=1.-(t-81.)*0.335;
@@ -209,32 +194,24 @@ void main()
 
     if (t > 25. && t <= 30.) NUMBER_OF_MARCH_STEPS-=int((t-25.)*40.);
 
-	    vec3 camera_origin = vec3(0., 1., cz);
-	vec3 lookAt = vec3(0.,1.,cz+1.);
-    
-    vec3 forward = normalize(lookAt-camera_origin);
+	vec3 ro = vec3(0., 1., cz);    
+    vec3 forward = normalize(vec3(0.,1.,cz+1.)-ro);
     vec3 right = normalize(vec3(forward.z, 0., -forward.x ));
     vec3 up = normalize(cross(forward,right));
 
-    
-    vec3 ro = camera_origin;
     vec3 rd = normalize(forward + FOV*uv.x*right + FOV*uv.y*up);
 
     vec2 result = raymarch(ro, rd);
             
-    float fog = pow(1. / (1. + result.x), .2);
-    
-    vec3 icecol = vec3(.6,.6,1.0);
 	vec3 materialColor = vec3(1.3-result.x*.01*.5,.9-cos(result.x*.1)*.5,1.*.5);
 
 	materialColor -= vec3(.4,4.7,8.0)*(bump(hit)+bump(hit*.2*vec3(1.,1.,4.))*1.5);
-    vec3 intersection = ro + rd*result.x;
     
-    vec3 nrml = normal(intersection);
+    vec3 nrml = normal(ro + rd*result.x);
     vec3 light_dir = normalize(vec3(sin(result.x*.1),.3,-1.+fly));
     vec3 ref = reflect( rd, nrml );
 	
-    if (t > 45.) { materialColor=mix(materialColor,icecol,clamp((t-45.)*0.2,0.,1.8)); }
+    if (t > 45.) { materialColor=mix(materialColor,vec3(.6,.6,1.0),clamp((t-45.)*0.2,0.,1.8)); }
 
     float dom = smoothstep( -.1, .9, ref.y);
     float spe = pow(clamp( dot( ref, light_dir ), 0., 1. ),32.);
@@ -242,8 +219,6 @@ void main()
     float diffuse = orenNayarDiffuse(light_dir,rd,nrml,.3*fly,.7*fly)-result.y*.05;
     
     vec3 light_color = vec3(1.);
-    vec3 ambient_color = light_color;
-    vec3 diffuseLit = materialColor * (diffuse * light_color + ambient_color);
-    vec3 outColor = diffuseLit*fog+dom*.2+spe*.6;
+    vec3 outColor = (materialColor * (diffuse * light_color + light_color))*(pow(1. / (1. + result.x), .2))+dom*.2+spe*.6;
 	o = vec4(mix(vec3(diffuse),outColor,fader), 1.)*fader2;
 }
