@@ -1,63 +1,42 @@
-// FXAA
+// A simple chromatic aberration example
+/*
+#pragma data_seg(.shader)
+static const char* post = \
+#version 130\n
+uniform sampler2D o;
+out vec4 i;
+vec3 ca(sampler2D t, vec2 u){
+	const int n=10;
+	vec3 c=vec3(0);
+	float rf=1,gf=1,bf=1;
+	for(int i=0;i<n;++i){
+		c.r+=texture(t,.5+.5*(u*rf)).r;
+		c.g+=texture(t,.5+.5*(u*gf)).g;
+		c.b+=texture(t,.5+.5*(u*bf)).b;
+		rf*=.9988;
+		gf*=.9982;
+        bf*=.996;
+	}
+	return c/n;
+}
+void main(){
+	i = vec4(ca(o,-1+2*gl_FragCoord.xy/vec2(1280,720)),1);
+};
+*/
+
+// Mipmap fake glossy thing!
 #version 130
 uniform sampler2D o;
 out vec4 i;
-
-vec3 FxaaPixelShader( vec4 uv, vec2 rcpFrame) {
-    
-    vec3 rgbNW = textureLod(o, uv.zw, 0.).xyz;
-    vec3 rgbNE = textureLod(o, uv.zw + vec2(1,0)*rcpFrame.xy, 0.).xyz;
-    vec3 rgbSW = textureLod(o, uv.zw + vec2(0,1)*rcpFrame.xy, 0.).xyz;
-    vec3 rgbSE = textureLod(o, uv.zw + vec2(1,1)*rcpFrame.xy, 0.).xyz;
-    vec3 rgbM  = textureLod(o, uv.xy, 0.).xyz;
-
-    vec3 luma = vec3(.299, .587, .114);
-    float lumaNW = dot(rgbNW, luma);
-    float lumaNE = dot(rgbNE, luma);
-    float lumaSW = dot(rgbSW, luma);
-    float lumaSE = dot(rgbSE, luma);
-    float lumaM  = dot(rgbM,  luma);
-
-    float lumaMin = min(lumaM, min(min(lumaNW, lumaNE), min(lumaSW, lumaSE)));
-    float lumaMax = max(lumaM, max(max(lumaNW, lumaNE), max(lumaSW, lumaSE)));
-
-    vec2 dir;
-    dir.x = -((lumaNW + lumaNE) - (lumaSW + lumaSE));
-    dir.y =  ((lumaNW + lumaSW) - (lumaNE + lumaSE));
-
-    float dirReduce = max(
-        (lumaNW + lumaNE + lumaSW + lumaSE) * (.25 * .0625),
-        (1./128.));
-    float rcpDirMin = 1./(min(abs(dir.x), abs(dir.y)) + dirReduce);
-    
-    dir = min(vec2( 16.),
-          max(vec2(-16.),
-          dir * rcpDirMin)) * rcpFrame.xy;
-
-    vec3 rgbA = (.5) * (
-        textureLod(o, uv.xy + dir * (1./3. - .5), 0.).xyz +
-        textureLod(o, uv.xy + dir * (2./3. - .5), 0.).xyz);
-    vec3 rgbB = rgbA * (.5) + (.25) * (
-        textureLod(o, uv.xy + dir * (0./3. - .5), 0.).xyz +
-        textureLod(o, uv.xy + dir * (3./3. - .5), 0.).xyz);
-    
-    float lumaB = dot(rgbB, luma);
-    
-    if((lumaB < lumaMin) || (lumaB > lumaMax)) return rgbA;
-    
-    return rgbB; 
-}
-
-
-void main() {
-	vec2 res = vec2(1280.,720.);
-    vec2 rcpFrame = 1./res;
-  	vec2 uv2 = gl_FragCoord.xy / res;
-        
-    vec3 col;
-
-   	vec4 uv = vec4( uv2, uv2 - (rcpFrame * (.75)));
-	col = FxaaPixelShader( uv, 1./res );
-        
-    i = vec4( col, 1. );
+float hash(float c){return fract(sin(dot(c, 12.9898)) * 43758.5453);}
+void main(){
+i = vec4(0);
+	for(int t = 0; t < 25; t++){
+		vec2 uv = gl_FragCoord.xy/vec2(1280,720);
+		float s1 = hash(float(t+dot(uv,uv)));
+		float s2 = hash(float(1-t+dot(uv,uv)));
+		vec2 f = 0.01*(-1.0+2.0*vec2(s1,s2));
+		i += vec4(textureLod(o, uv, (0.3+0.7*s1)*texture(o, (2.0+1.0*f)*uv).a*(distance(uv,vec2(0.5))*8.)).rgb,1);
+	}
+	i /= vec4(25);
 }
