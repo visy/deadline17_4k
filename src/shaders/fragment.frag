@@ -7,6 +7,7 @@ float FAR_CLIPPING_PLANE=700.;
 int NUMBER_OF_MARCH_STEPS=500;
 float EPSILON=.1;
 float DISTANCE_BIAS=.2;
+
 float fly = 1.;
 void pR(inout vec2 p, float a) {
 	p = cos(a)*p + sin(a)*vec2(p.y, -p.x);
@@ -163,7 +164,7 @@ void main()
     vec2 uv = (-vec2(1280.,720.) + 2.*(gl_FragCoord.xy))/720.;
     vec3 direction = normalize(vec3(uv, 0.));
 
-    if( -abs(uv.y)+0.8>0.0) {
+    if( -abs(uv.y)+0.8>0.0){
     
     if (t < 30.) fly = 0.;
 	if (t > 81.) fader=1.-(t-81.)*0.335;
@@ -176,9 +177,11 @@ void main()
         cz = 2779.;
     	NUMBER_OF_MARCH_STEPS=100-int((t-27.)*40.);
 		DISTANCE_BIAS=.6;
-    }   
+    } else {
+	cz -= length(uv)*mod(t*60.0/132.0*2.,1.)*10.;
+    }
        
-    if (t > 44. && t < 49.) cz += hex(uv*10.)*sin((t-44.)*1.9);
+    if (t > 30. && t < 35.) cz += hex(uv*10.)*sin((t-30.)*1.9);
     
 
     if (fly == 2.) {
@@ -198,7 +201,6 @@ void main()
     if (fly == 0.) { FOV = 12.-sin(length(uv)*3.14159*2.)*(32.0-t)*0.1+t/2.; }
     if (fly == 2.) FOV = 5.+(uv.x-uv.y)*0.1;
 
-
 	vec3 camera_origin = vec3(0., 1., cz);
     
     vec3 forward = normalize(vec3(0.,1.,cz+1.)-camera_origin);
@@ -213,20 +215,19 @@ void main()
     float stepc = stepslast * 0.001;
     
     hit *= 0.1 + sin(hit.z*0.1)*0.1;
-    fog = pow(1. / (1. + result.x), 0.17 + min(max(t-44.0,0.0)*0.1,0.4) + min(max(t-44.,0.)*0.1,1.) * (-0.18 + abs(cos(t+result.x))*result.x*5.*distance(cellTile2(hit),cellTile2(hit*0.1+0.1))) )-(cellTile2(vec3(hit*20.9))+cellTile2(hit*0.1+0.1));    
-    
+        
+    fog = pow(1. / (1. + result.x), 0.17 + min(max(t-30.0,0.0)*0.1,0.4) + min(max(t-30.,0.)*0.1,1.) * (-0.4 + abs(cos(t+result.x))*result.x*5.*distance(cellTile2(hit),cellTile2(hit*0.1+0.1))))-(cellTile2(vec3(hit*20.9))+cellTile2(hit*0.1+0.1));
 	vec3 materialColor = materialMap(result);
     vec3 intersection = ro + rd*result.x;
     vec3 nrml = normal(intersection);
 	im++;
-    vec2 result_in = raymarch(intersection + reslast * rd * max(32.-t/4.0,7.0) / (1.0 + result.x * 0.01) , rd, NUMBER_OF_MARCH_STEPS/6);
+    vec2 result_in = raymarch(intersection + reslast * rd * max(32.-t/4.0,7.0) / (1.0 + result.x * 0.01) , rd, NUMBER_OF_MARCH_STEPS/16);
+//	vec2 result_in = vec2(1.);
     if (t > 45.) { materialColor=mix(materialColor,vec3(.6,.6,1.0),clamp((t-45.)*0.2,0.,1.8)); }
 
-    vec3 outColor = surfColorResul(ro, rd, nrml, reflect( rd, nrml ), result, materialColor, normalize(vec3(sin(result.x*.1),.3,-1.+fly))) * (1.7 / (1.0 + 0.4 * min(result_in.x + cellTile2(hit/0.001) * 7.,5.)  ));
+    vec3 outColor = surfColorResul(ro, rd, nrml, reflect( rd, nrml ), result, materialColor, normalize(vec3(sin(result.x*.1),.3,-1.+fly))) * (1.7 / (1.0 + 0.4 * min(result_in.x + cellTile2(hit/0.001) * 7.,7.)  ));
     outColor += vec3(stepc);
-        //outColor += outColor_out * extinction * extinction / 4.0;
 	o = vec4(outColor, result.x*min(max(t-30.,0.6),1.));
     }
-
 
 }
