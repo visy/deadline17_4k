@@ -161,9 +161,7 @@ vec3 surfColorResul(vec3 pos, vec3 rd, vec3 nrml, vec3 ref, vec2 result, vec3 ma
 void main()
 {
     // pixel coordinates
-    vec2 uv = (-vec2(1280.,720.) + 2.*(gl_FragCoord.xy))/720.;
-    vec3 direction = normalize(vec3(uv, 0.));
-
+    vec2 uv = (-vec2(640.,480.) + 2.*(gl_FragCoord.xy))/480.;
     if( -abs(uv.y)+0.8>0.0){
     
     if (t < 30.) fly = 0.;
@@ -172,23 +170,22 @@ void main()
     if (fly >= 1.) t-=30.;
 
     float cz = t*5.9;
+    if (fly == 2.) {
+       	cz=1000.-((t-54.)*0.5);
+		DISTANCE_BIAS=.3;
+       	fader=(t-54.)*0.04;
+    }
     
     if (fly == 0.) { 
         cz = 2779.;
     	NUMBER_OF_MARCH_STEPS=100-int((t-27.)*40.);
 		DISTANCE_BIAS=.6;
     } else {
-	cz -= length(uv)*mod(t*60.0/132.0*2.,1.)*10.;
     }
        
     if (t > 30. && t < 35.) cz += hex(uv*10.)*sin((t-30.)*1.9);
     
 
-    if (fly == 2.) {
-       	cz=1000.-((t-54.)*0.5);
-		DISTANCE_BIAS=.3;
-       	fader=(t-54.)*0.04;
-    }
 
     if (t > 90.) { fader2-=(t-90.)*.1;}
     
@@ -199,6 +196,8 @@ void main()
     float FOV = t*.1;
         
     if (fly == 0.) { FOV = 12.-sin(length(uv)*3.14159*2.)*(32.0-t)*0.1+t/2.; }
+	else if (t > 18.7) cz -= length(uv)*mod(t*60.0/132.0*2.,0.81)*cos(t+hex(FOV+uv*t*.05)*max(0.,(t-40.)*.05))*10.;
+
     if (fly == 2.) FOV = 5.+(uv.x-uv.y)*0.1;
 
 	vec3 camera_origin = vec3(0., 1., cz);
@@ -216,7 +215,8 @@ void main()
     
     hit *= 0.1 + sin(hit.z*0.1)*0.1;
         
-    fog = pow(1. / (1. + result.x), 0.17 + min(max(t-30.0,0.0)*0.1,0.4) + min(max(t-30.,0.)*0.1,1.) * (-0.4 + abs(cos(t+result.x))*result.x*5.*distance(cellTile2(hit),cellTile2(hit*0.1+0.1))))-(cellTile2(vec3(hit*20.9))+cellTile2(hit*0.1+0.1));
+    if (fly < 2.) fog = pow(1. / (1. + result.x), 0.17 + min(max(t-30.0,0.0)*0.1,0.4) + min(max(t-30.,0.)*0.1,1.) * (-0.4 + abs(cos(t+result.x))*result.x*5.*distance(cellTile2(hit),cellTile2(hit*0.1+0.1))))-(cellTile2(vec3(hit*20.9))+cellTile2(hit*0.1+0.1));
+	
 	vec3 materialColor = materialMap(result);
     vec3 intersection = ro + rd*result.x;
     vec3 nrml = normal(intersection);
