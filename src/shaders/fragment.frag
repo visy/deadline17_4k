@@ -2,15 +2,13 @@
 uniform int m;
 out vec4 o;
 float t = m/float(44100);
-float NEAR_CLIPPING_PLANE=.005;
-float FAR_CLIPPING_PLANE=700.;
 int NUMBER_OF_MARCH_STEPS=500;
 float EPSILON=.1;
 float DISTANCE_BIAS=.2;
 
 float fly = 1.;
 void pR(inout vec2 p, float a) {
-	p = cos(a)*p + sin(a)*vec2(p.y, -p.x);
+    p = cos(a)*p + sin(a)*vec2(p.y, -p.x);
 }
 
 void r(inout vec3 pos) {
@@ -31,9 +29,9 @@ float celli(vec3 p){ p = fract(p)-.5; return dot(p, p); }
 
 float hex(vec2 p) {
     p.x *= 0.57735*2.;
-	p.y += mod(floor(p.x), 2.)*.5;
-	p = abs((mod(p, 1.) - .5));
-	return abs(max(p.x*1.5 + p.y, p.y*2.) - 1.);
+    p.y += mod(floor(p.x), 2.)*.5;
+    p = abs((mod(p, 1.) - .5));
+    return abs(max(p.x*1.5 + p.y, p.y*2.) - 1.);
 }
 
 float cellTile2(vec3 p){
@@ -50,13 +48,13 @@ float cellTile2(vec3 p){
 }
 float bump(vec3 pos) {
     float re = 0.;
-	re += cellTile2(pos*.25) * cellTile2(pos*1.1) * 3. + cellTile2(pos*0.2) * cellTile2(pos*4.4) * .5;
+    re += cellTile2(pos*.25) * cellTile2(pos*1.1) * 3. + cellTile2(pos*0.2) * cellTile2(pos*4.4) * .5;
     return re;
 }
 vec3 hit;
 
 float sp(vec3 opos, vec3 pos) {
-	//return sdSphere(cos(opos*.2),1.1+cos(pos.z*.01+cos(pos.x*1.1)*.1)*.2)*3.91;
+    //return sdSphere(cos(opos*.2),1.1+cos(pos.z*.01+cos(pos.x*1.1)*.1)*.2)*3.91;
     return (length(cos(opos*.2)) - (1.1+cos(pos.z*.01+cos(pos.x*1.1)*.1)*.2))*3.91;
 }
 
@@ -66,31 +64,26 @@ void rota(inout vec3 pos) {
     if (fly == 2.) r3(pos);
 }
 
-float scene1(vec3 pos)
-{
-	rota(pos);
-    float of = .3*sin(pos.z*5.5);
-	return sp(pos - vec3(of, -of, cos(pos.z)*.5),pos);
-}
-
 float scene2(vec3 pos)
 {
     vec3 translate = vec3(-0.5*cos(pos.z*.01), -.2*sin(.005*pos.z*cos(pos.z*4.5+pos.z*.5+pos.z*5.)*.1), 0.);
-	rota(pos);
+    rota(pos);
     hit = pos;
-	return sp(pos - translate,pos);
+    return sp(pos - translate,pos);
 }
 
 float sceneb(vec3 pos) {
-	return min(scene1(pos),scene2(pos))-bump(hit+cos(pos.z*.3)*3.)*1.5;
+    rota(pos);
+    float of = .3*sin(pos.z*5.5);
+    float R1= sp(pos - vec3(of, -of, cos(pos.z)*.5),pos);
+    return min(R1,scene2(pos))-bump(hit+cos(pos.z*.3)*3.)*1.5;
 }
 
 float reslast;
 float im = 0.;
-float stepslast;
 vec2 raymarch(vec3 position, vec3 direction, int steps)
 {
-    float total_distance = NEAR_CLIPPING_PLANE;
+    float total_distance = .005;
     float acc = 0.;
     for(int i = 0 ; i < steps ; ++i)
     {
@@ -98,8 +91,7 @@ vec2 raymarch(vec3 position, vec3 direction, int steps)
         float result = sceneb(pos);
         reslast = result;
         result = result * (1.-2.*im);
-        stepslast = float(i);
-        acc+=cos(result*1.)*.05 * (1.-im) + bump(pos*12.) * im;
+        acc+=cos(result*1.)*.05;
 
         if(result + 1e9 * im < EPSILON)
             return vec2(total_distance, acc);
@@ -108,16 +100,16 @@ vec2 raymarch(vec3 position, vec3 direction, int steps)
         
         
     }
-    return vec2(max(1.0,total_distance)+(1.-im)*FAR_CLIPPING_PLANE, acc);
+    return vec2(max(1.0,total_distance)+(1.-im)*700., acc);
 }
 vec3 normal( vec3 pos )
 {
     vec3 eps = vec3(EPSILON,0.,0.);
-	vec3 nor = vec3(
-	    sceneb(pos+eps.xyy) - sceneb(pos-eps.xyy),
-	    sceneb(pos+eps.yxy) - sceneb(pos-eps.yxy),
-	    sceneb(pos+eps.yyx) - sceneb(pos-eps.yyx) );
-	return normalize(nor);
+    vec3 nor = vec3(
+        sceneb(pos+eps.xyy) - sceneb(pos-eps.xyy),
+        sceneb(pos+eps.yxy) - sceneb(pos-eps.yxy),
+        sceneb(pos+eps.yyx) - sceneb(pos-eps.yyx) );
+    return normalize(nor);
 }
 
 
@@ -139,8 +131,8 @@ float orenNayarDiffuse(
   return albedo * max(0., NdotL) * (1. + sigma2 * (albedo / (sigma2 + .13) + .5 / (sigma2 + .33)) + .45 * sigma2 / (sigma2 + .09) * s /  mix(1., max(NdotL, NdotV), step(0., s))) / 3.14159;
 }
 vec3 materialMap(vec2 result) {
-	vec3 materialColor = vec3(1.3-result.x*.01*.5,.9-cos(result.x*.1)*.5,1.*.5);
-	materialColor -= vec3(.4,4.7,8.0)*(bump(hit)+bump(hit*.2*vec3(1.,1.,4.))*1.5);
+    vec3 materialColor = vec3(1.3-result.x*.01*.5,.9-cos(result.x*.1)*.5,1.*.5);
+    materialColor -= vec3(.4,4.7,8.0)*(bump(hit)+bump(hit*.2*vec3(1.,1.,4.))*1.5);
     return materialColor;
 }
 float fader = 1.0;
@@ -161,25 +153,25 @@ vec3 surfColorResul(vec3 pos, vec3 rd, vec3 nrml, vec3 ref, vec2 result, vec3 ma
 void main()
 {
     // pixel coordinates
-    vec2 uv = (-vec2(640.,480.) + 2.*(gl_FragCoord.xy))/480.;
+    vec2 uv = (-vec2(1280.,720.) + 2.*(gl_FragCoord.xy))/720.;
     if( -abs(uv.y)+0.8>0.0){
     
     if (t < 30.) fly = 0.;
-	if (t > 81.) fader=1.-(t-81.)*0.335;
+    if (t > 81.) fader=1.-(t-81.)*0.335;
     if (t > 84.) fly = 2.;
     if (fly >= 1.) t-=30.;
 
     float cz = t*5.9;
     if (fly == 2.) {
-       	cz=1000.-((t-54.)*0.5);
-		DISTANCE_BIAS=.3;
-       	fader=(t-54.)*0.04;
+        cz=1000.-((t-54.)*0.5);
+        DISTANCE_BIAS=.3;
+        fader=(t-54.)*0.04;
     }
     
     if (fly == 0.) { 
         cz = 2779.;
-    	NUMBER_OF_MARCH_STEPS=100-int((t-27.)*40.);
-		DISTANCE_BIAS=.6;
+        NUMBER_OF_MARCH_STEPS=100-int((t-27.)*40.);
+        DISTANCE_BIAS=.6;
     } else {
     }
        
@@ -196,11 +188,11 @@ void main()
     float FOV = t*.1;
         
     if (fly == 0.) { FOV = 12.-sin(length(uv)*3.14159*2.)*(32.0-t)*0.1+t/2.; }
-	else if (t > 18.7) cz -= length(uv)*mod(t*60.0/132.0*2.,0.81)*cos(t+hex(FOV+uv*t*.05)*max(0.,(t-40.)*.05))*10.;
+    else if (t > 18.7) cz -= length(uv)*mod(t*60.0/132.0*2.,0.81)*cos(t+hex(FOV+uv*t*.05)*max(0.,(t-40.)*.05))*10.;
 
     if (fly == 2.) FOV = 5.+(uv.x-uv.y)*0.1;
 
-	vec3 camera_origin = vec3(0., 1., cz);
+    vec3 camera_origin = vec3(0., 1., cz);
     
     vec3 forward = normalize(vec3(0.,1.,cz+1.)-camera_origin);
     vec3 right = normalize(vec3(forward.z, 0., -forward.x ));
@@ -211,23 +203,19 @@ void main()
     vec3 rd = normalize(forward + FOV*uv.x*right + FOV*uv.y*up);
 
     vec2 result = raymarch(ro, rd, NUMBER_OF_MARCH_STEPS);
-    float stepc = stepslast * 0.001;
     
     hit *= 0.1 + sin(hit.z*0.1)*0.1;
         
     if (fly < 2.) fog = pow(1. / (1. + result.x), 0.17 + min(max(t-30.0,0.0)*0.1,0.4) + min(max(t-30.,0.)*0.1,1.) * (-0.4 + abs(cos(t+result.x))*result.x*5.*distance(cellTile2(hit),cellTile2(hit*0.1+0.1))))-(cellTile2(vec3(hit*20.9))+cellTile2(hit*0.1+0.1));
-	
-	vec3 materialColor = materialMap(result);
+    
+    vec3 materialColor = materialMap(result);
     vec3 intersection = ro + rd*result.x;
     vec3 nrml = normal(intersection);
-	im++;
-    vec2 result_in = raymarch(intersection + reslast * rd * max(32.-t/4.0,7.0) / (1.0 + result.x * 0.01) , rd, NUMBER_OF_MARCH_STEPS/16);
-//	vec2 result_in = vec2(1.);
+    im++;
+//  vec2 result_in = vec2(1.);
     if (t > 45.) { materialColor=mix(materialColor,vec3(.6,.6,1.0),clamp((t-45.)*0.2,0.,1.8)); }
 
-    vec3 outColor = surfColorResul(ro, rd, nrml, reflect( rd, nrml ), result, materialColor, normalize(vec3(sin(result.x*.1),.3,-1.+fly))) * (1.7 / (1.0 + 0.4 * min(result_in.x + cellTile2(hit/0.001) * 7.,7.)  ));
-    outColor += vec3(stepc);
-	o = vec4(outColor, result.x*min(max(t-30.,0.6),1.));
+    o = vec4(surfColorResul(ro, rd, nrml, reflect( rd, nrml ), result, materialColor, normalize(vec3(sin(result.x*.1),.3,-1.+fly))) * (1.7 / (1.0 + 0.4 * min(raymarch(intersection + reslast * rd * max(32.-t/4.0,7.0) / (1.0 + result.x * 0.01) , rd, NUMBER_OF_MARCH_STEPS/16).x + cellTile2(hit/0.001) * 7.,7.)  )), result.x/720.*min(max(t-30.,0.6),1.));
     }
 
 }
