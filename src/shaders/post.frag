@@ -4,13 +4,9 @@ out vec4 i;
 void main() {
 	vec4 j = vec4(0.);
 	float s1;
-	vec2 uv = gl_FragCoord.xy/vec2(1280.,720.);
-<<<<<<< HEAD
-   float right = texture(o,uv+0.00001).w*720.;
-=======
-    float right = texture(o,uv+0.00001).w*720.;
->>>>>>> 564876e8ea370fc0de5b6668a0bed4f29f24bbd6
-    float left = texture(o,uv-0.00001).w*720.;
+	vec2 uv = gl_FragCoord.xy/vec2(1920.,1080.);
+   float right = texture(o,uv+0.00001).w*1080.;
+    float left = texture(o,uv-0.00001).w*1080.;
     float blr = pow(max(right*left*0.0002,0.0),2.0);
 	for(int t = 0; t < 111; t++){
         float s2 = s1;

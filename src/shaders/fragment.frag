@@ -12,7 +12,6 @@ void pR(inout vec2 p, float a) {
 }
 vec3 hit;
 
-
 float celli(vec3 p){ p = fract(p)-.5; return dot(p, p); }
 
 float hex(vec2 p) {
@@ -42,7 +41,6 @@ float bump(vec3 pos) {
 
 
 float sp(vec3 opos, vec3 pos) {
-    //return sdSphere(cos(opos*.2),1.1+cos(pos.z*.01+cos(pos.x*1.1)*.1)*.2)*3.91;
     return (length(cos(opos*.2)) - (1.1+cos(pos.z*.01+cos(pos.x*1.1)*.1)*.2))*3.91;
 }
 
@@ -69,7 +67,7 @@ void rota(inout vec3 pos) {
 float scene2(vec3 pos)
 {
     vec3 translate = vec3(-0.5*cos(pos.z*.01), -.2*sin(.005*pos.z*cos(pos.z*4.5+pos.z*.5+pos.z*5.)*.1), 0.);
-    rota(pos);
+    if (fly != 1.) rota(pos);
     hit = pos;
     return sp(pos - translate,pos);
 }
@@ -152,46 +150,29 @@ vec3 surfColorResul(vec3 pos, vec3 rd, vec3 nrml, vec3 ref, vec2 result, vec3 ma
     return mix(vec3(diffuse),outColor,fader)*fader2;
 }
 
+
 void main()
 {
     // pixel coordinates
-    vec2 uv = (-vec2(1280.,720.) + 2.*(gl_FragCoord.xy))/720.;
+    vec2 uv = (-vec2(1920.,1080.) + 2.*(gl_FragCoord.xy))/1080.;
     if( -abs(uv.y)+0.8>0.0){
-    
-<<<<<<< HEAD
     if (t < 28.) fly = 0.;
-=======
-    if (t < 30.) fly = 0.;
->>>>>>> 564876e8ea370fc0de5b6668a0bed4f29f24bbd6
     if (t > 81.) fader=1.-(t-81.)*0.335;
     if (t > 84.) fly = 2.;
     if (fly >= 1.) t-=25.;
 
     float cz = t*9.9;
     if (fly == 2.) {
-<<<<<<< HEAD
 		t-=5.;
         cz=1000.-((t-54.)*0.5+t*0.15);
-=======
-        cz=1000.-((t-54.)*0.5);
-        DISTANCE_BIAS=.3;
->>>>>>> 564876e8ea370fc0de5b6668a0bed4f29f24bbd6
         fader=(t-54.)*0.04;
     }
     
     if (fly == 0.) { 
-        cz = 2779.;
-<<<<<<< HEAD
+        cz = 2779.5;
         NUMBER_OF_MARCH_STEPS=30-int((t-27.)*38.);
         DISTANCE_BIAS=.6;
     }       
-=======
-        NUMBER_OF_MARCH_STEPS=100-int((t-27.)*40.);
-        DISTANCE_BIAS=.6;
-    } else {
-    }
-       
->>>>>>> 564876e8ea370fc0de5b6668a0bed4f29f24bbd6
     if (t > 30. && t < 35.) cz += hex(uv*10.)*sin((t-30.)*1.9);
     
 
@@ -205,11 +186,7 @@ void main()
     float FOV = t*.1;
         
     if (fly == 0.) { FOV = 12.-sin(length(uv)*3.14159*2.)*(32.0-t)*0.1+t/2.; }
-<<<<<<< HEAD
     else if (t > 49.) cz -= cos(hex(uv*cos(cz*0.01+uv.x*.1)*8.)*mod(t*.01,1.)+cz)*1.;
-=======
-    else if (t > 18.7) cz -= length(uv)*mod(t*60.0/132.0*2.,0.81)*cos(t+hex(FOV+uv*t*.05)*max(0.,(t-40.)*.05))*10.;
->>>>>>> 564876e8ea370fc0de5b6668a0bed4f29f24bbd6
 
     if (fly == 2.) FOV = 5.+(uv.x-uv.y)*0.1;
 
@@ -228,18 +205,12 @@ void main()
     hit *= 0.1 + sin(hit.z*0.1)*0.1;
         
     if (fly < 2.) fog = pow(1. / (1. + result.x), 0.17 + min(max(t-30.0,0.0)*0.1,0.4) + min(max(t-30.,0.)*0.1,1.) * (-0.4 + abs(cos(t+result.x))*result.x*5.*distance(cellTile2(hit),cellTile2(hit*0.1+0.1))))-(cellTile2(vec3(hit*20.9))+cellTile2(hit*0.1+0.1));
-    
+    else fog = result.x*0.03;
     vec3 materialColor = materialMap(result);
+    if (fly == 2.) materialColor = vec3(3.0-result.x*0.05);
     vec3 intersection = ro + rd*result.x;
     vec3 nrml = normal(intersection);
     im++;
-<<<<<<< HEAD
-    if (t > 45.) { materialColor=mix(materialColor,vec3(.6,.6,1.0),clamp((t-45.)*0.2,0.,1.8)); }
-=======
-//  vec2 result_in = vec2(1.);
-    if (t > 45.) { materialColor=mix(materialColor,vec3(.6,.6,1.0),clamp((t-45.)*0.2,0.,1.8)); }
-
->>>>>>> 564876e8ea370fc0de5b6668a0bed4f29f24bbd6
     o = vec4(surfColorResul(ro, rd, nrml, reflect( rd, nrml ), result, materialColor, normalize(vec3(sin(result.x*.1),.3,-1.+fly))) * (1.7 / (1.0 + 0.4 * min(raymarch(intersection + reslast * rd * max(32.-t/4.0,7.0) / (1.0 + result.x * 0.01) , rd, NUMBER_OF_MARCH_STEPS/16).x + cellTile2(hit/0.001) * 7.,7.)  )), result.x/720.*min(max(t-30.,0.6),1.));
     }
 
