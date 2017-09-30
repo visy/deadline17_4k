@@ -154,7 +154,7 @@ vec3 surfColorResul(vec3 pos, vec3 rd, vec3 nrml, vec3 ref, vec2 result, vec3 ma
 void main()
 {
     // pixel coordinates
-    vec2 uv = (-vec2(1920.,1080.) + 2.*(gl_FragCoord.xy))/1080.;
+    vec2 uv = (-vec2(1280.,720.) + 2.*(gl_FragCoord.xy))/720.;
     if( -abs(uv.y)+0.8>0.0){
     if (t < 28.) fly = 0.;
     if (t > 81.) fader=1.-(t-81.)*0.335;
@@ -163,6 +163,9 @@ void main()
 
     float cz = t*9.9;
     if (fly == 2.) {
+		NUMBER_OF_MARCH_STEPS = 300-int((t-90.)*18.);
+		DISTANCE_BIAS=.3;
+		EPSILON=.1;
 		t-=5.;
         cz=1000.-((t-54.)*0.5+t*0.15);
         fader=(t-54.)*0.04;
@@ -207,11 +210,12 @@ void main()
     if (fly < 2.) fog = pow(1. / (1. + result.x), 0.17 + min(max(t-30.0,0.0)*0.1,0.4) + min(max(t-30.,0.)*0.1,1.) * (-0.4 + abs(cos(t+result.x))*result.x*5.*distance(cellTile2(hit),cellTile2(hit*0.1+0.1))))-(cellTile2(vec3(hit*20.9))+cellTile2(hit*0.1+0.1));
     else fog = result.x*0.03;
     vec3 materialColor = materialMap(result);
-    if (fly == 2.) materialColor = vec3(3.0-result.x*0.05);
+    if (fly == 2.) materialColor = vec3(2.5-result.x*0.05);
     vec3 intersection = ro + rd*result.x;
     vec3 nrml = normal(intersection);
     im++;
     o = vec4(surfColorResul(ro, rd, nrml, reflect( rd, nrml ), result, materialColor, normalize(vec3(sin(result.x*.1),.3,-1.+fly))) * (1.7 / (1.0 + 0.4 * min(raymarch(intersection + reslast * rd * max(32.-t/4.0,7.0) / (1.0 + result.x * 0.01) , rd, NUMBER_OF_MARCH_STEPS/16).x + cellTile2(hit/0.001) * 7.,7.)  )), result.x/720.*min(max(t-30.,0.6),1.));
+
     }
 
 }

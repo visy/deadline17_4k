@@ -4,9 +4,9 @@ out vec4 i;
 void main() {
 	vec4 j = vec4(0.);
 	float s1;
-	vec2 uv = gl_FragCoord.xy/vec2(1920.,1080.);
-   float right = texture(o,uv+0.00001).w*1080.;
-    float left = texture(o,uv-0.00001).w*1080.;
+	vec2 uv = gl_FragCoord.xy/vec2(1280.,720.);
+   float right = texture(o,uv+0.00001).w*720.;
+    float left = texture(o,uv-0.00001).w*720.;
     float blr = pow(max(right*left*0.0002,0.0),2.0);
 	for(int t = 0; t < 111; t++){
         float s2 = s1;
@@ -16,5 +16,7 @@ void main() {
 	}
 	j /= vec4(111.);
 	i = (j - blr) - .1*min(1e3*distance(right,left),1.);
+	i = clamp(i,0.,1.);
+	i = pow(i, vec4(1.0 / 2.2));
 
 }
