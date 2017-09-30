@@ -210,9 +210,9 @@ void main()
     if (fly < 2.) fog = pow(1. / (1. + result.x), 0.17 + min(max(t-30.0,0.0)*0.1,0.4) + min(max(t-30.,0.)*0.1,1.) * (-0.4 + abs(cos(t+result.x))*result.x*5.*distance(cellTile2(hit),cellTile2(hit*0.1+0.1))))-(cellTile2(vec3(hit*20.9))+cellTile2(hit*0.1+0.1));
     else fog = result.x*0.03;
     vec3 materialColor = materialMap(result);
-    if (fly == 2.) materialColor = vec3(2.5-result.x*0.05);
     vec3 intersection = ro + rd*result.x;
     vec3 nrml = normal(intersection);
+    if (fly == 2.) materialColor = nrml*fog*.3+vec3(2.5-result.x*0.06);
     im++;
     o = vec4(surfColorResul(ro, rd, nrml, reflect( rd, nrml ), result, materialColor, normalize(vec3(sin(result.x*.1),.3,-1.+fly))) * (1.7 / (1.0 + 0.4 * min(raymarch(intersection + reslast * rd * max(32.-t/4.0,7.0) / (1.0 + result.x * 0.01) , rd, NUMBER_OF_MARCH_STEPS/16).x + cellTile2(hit/0.001) * 7.,7.)  )), result.x/720.*min(max(t-30.,0.6),1.));
 
