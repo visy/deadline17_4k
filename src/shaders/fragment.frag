@@ -5,7 +5,7 @@ float t = m/float(44100);
 int NUMBER_OF_MARCH_STEPS=350;
 float EPSILON=.1;
 float DISTANCE_BIAS=.4;
-float beat, beat1, beat2, beatsin;
+float beat, beat1, beat2, beat3, beatsin;
 
 float fly = 1.;
 void pR(inout vec2 p, float a) {
@@ -163,11 +163,12 @@ void main()
     beat = 132.0/60.0 * t;
     beat1 = mod(beat,1.);
     beat2 = mod(beat,2.);
+    beat3 = mod(beat*8.,1.);
     beatsin = sin(beat1*3.141591*2.);
-    if (t < 28.) fly = 0.;
+    if (t < 29.25) fly = 0.;
     if (t > 81.) fader=1.-(t-81.)*0.335;
     if (t > 84.) fly = 2.;
-        if (fly >= 1.) t-=25.;
+    if (fly >= 1.) t-=25.;
 
     float cz = t*9.9;
     if (fly == 2.) {
@@ -181,7 +182,6 @@ void main()
     	NUMBER_OF_MARCH_STEPS=300;
 		DISTANCE_BIAS=.2;
     }
- 
     if (fly==1. && t > 15. && t < 20.) cz += hex(uv*10.)*sin((t-30.)*1.9)*(1.+(t-15.)*0.1);
     
 
@@ -193,11 +193,16 @@ void main()
 
     fader = clamp(fader,0.,1.);
     float FOV = t*.1;
-    if (fly == 0.) { FOV = max(2.+t/7.-max(t-26.,0.)*(3.+length(uv)*3.),0.); }
+    if (fly == 0.) { FOV = max(2.+t/7.-max(t-26.,0.)*64.,0.)-max(t-12.5,0.)*length(uv)/2.; }
     else if (t > 49.) cz -= cos(hex(uv*cos(cz*0.01+uv.x*.1)*8.)*mod(t*.01,1.)+cz)*1.;
 
     if (fly == 2.) FOV = 5.+(uv.x-uv.y)*0.1;
-
+	
+    if (fly>0.) { 
+	FOV *= min(max(t - 4.25,0.),1.);
+	FOV += min(max(t - 15.,0.),10.) * 8. * max(1.-max(t-21.,0.)*0.3,0.);
+	}
+	
     vec3 camera_origin = vec3(0., 1., cz);
     
     vec3 forward = normalize(vec3(0.,1.,cz+1.)-camera_origin);
@@ -210,9 +215,8 @@ void main()
         
     vec2 result = raymarch(ro, rd, NUMBER_OF_MARCH_STEPS);
         
-    if (fly < 2.) fog = pow(1. / (1. + result.x), (4.+beat2)*max(1.-min(max(t2-40.,0.0),1.),0.)*(cellTile2(hit*(1.+fly*4.))+cellTile2(hit*0.1))+ 0.17 + min(max(t-30.0,0.0)*0.1,0.4) + min(max(t-30.,0.)*0.1,1.) * ( abs(cos(t+result.x))*result.x*5.*distance(cellTile2(hit),cellTile2(hit*0.1+0.1))))-cellTile2(hit*0.1+0.1);
+    if (fly < 2.) fog = pow(1. / (1. + result.x), beat3*beat2*min(max(t - 22.,0.),10.) * 18. * max(1.-max(t-25.,0.)*0.3,0.) * fly +(4.+beat2)*max(1.-min(max(t2-40.,0.0),1.),0.)*(cellTile2(hit*(1.+fly*4.))+cellTile2(hit*0.1))+ 0.17 + min(max(t-30.0,0.0)*0.1,0.4) + min(max(t-30.,0.)*0.1,1.) * ( abs(cos(t+result.x))*result.x*5.*distance(cellTile2(hit),cellTile2(hit*0.1+0.1))))-cellTile2(hit*0.1+0.1);
     else fog = result.x*0.03;
-
     vec3 materialColor = materialMap(result);
     if (fly == 2.) materialColor = vec3(3.0-result.x*0.05);
     vec3 intersection = ro + rd*result.x;
