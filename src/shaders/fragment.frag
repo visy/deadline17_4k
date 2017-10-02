@@ -2,9 +2,10 @@
 uniform int m;
 out vec4 o;
 float t = m/float(44100);
-int NUMBER_OF_MARCH_STEPS=500;
+int NUMBER_OF_MARCH_STEPS=350;
 float EPSILON=.1;
-float DISTANCE_BIAS=.2;
+float DISTANCE_BIAS=.4;
+float beat, beat1, beat2, beatsin;
 
 float fly = 1.;
 void pR(inout vec2 p, float a) {
@@ -156,27 +157,32 @@ void main()
     // pixel coordinates
     vec2 uv = (-vec2(1280.,720.) + 2.*(gl_FragCoord.xy))/720.;
     if( -abs(uv.y)+0.8>0.0){
+    t+=0.25;
+    float t2 = t;
+    float t3 = t-28.;
+    beat = 132.0/60.0 * t;
+    beat1 = mod(beat,1.);
+    beat2 = mod(beat,2.);
+    beatsin = sin(beat1*3.141591*2.);
     if (t < 28.) fly = 0.;
     if (t > 81.) fader=1.-(t-81.)*0.335;
     if (t > 84.) fly = 2.;
-    if (fly >= 1.) t-=25.;
+        if (fly >= 1.) t-=25.;
 
     float cz = t*9.9;
     if (fly == 2.) {
-		NUMBER_OF_MARCH_STEPS = 300-int((t-90.)*18.);
-		DISTANCE_BIAS=.3;
-		EPSILON=.1;
 		t-=5.;
         cz=1000.-((t-54.)*0.5+t*0.15);
         fader=(t-54.)*0.04;
     }
     
     if (fly == 0.) { 
-        cz = 2779.5;
-        NUMBER_OF_MARCH_STEPS=30-int((t-27.)*38.);
-        DISTANCE_BIAS=.6;
-    }       
-    if (t > 30. && t < 35.) cz += hex(uv*10.)*sin((t-30.)*1.9);
+        cz = 2779.;
+    	NUMBER_OF_MARCH_STEPS=300;
+		DISTANCE_BIAS=.2;
+    }
+ 
+    if (fly==1. && t > 15. && t < 20.) cz += hex(uv*10.)*sin((t-30.)*1.9)*(1.+(t-15.)*0.1);
     
 
 
@@ -187,8 +193,7 @@ void main()
 
     fader = clamp(fader,0.,1.);
     float FOV = t*.1;
-        
-    if (fly == 0.) { FOV = 12.-sin(length(uv)*3.14159*2.)*(32.0-t)*0.1+t/2.; }
+    if (fly == 0.) { FOV = max(2.+t/7.-max(t-26.,0.)*(3.+length(uv)*3.),0.); }
     else if (t > 49.) cz -= cos(hex(uv*cos(cz*0.01+uv.x*.1)*8.)*mod(t*.01,1.)+cz)*1.;
 
     if (fly == 2.) FOV = 5.+(uv.x-uv.y)*0.1;
@@ -202,20 +207,28 @@ void main()
     
     vec3 ro = camera_origin;
     vec3 rd = normalize(forward + FOV*uv.x*right + FOV*uv.y*up);
-
-    vec2 result = raymarch(ro, rd, NUMBER_OF_MARCH_STEPS);
-    
-    hit *= 0.1 + sin(hit.z*0.1)*0.1;
         
-    if (fly < 2.) fog = pow(1. / (1. + result.x), 0.17 + min(max(t-30.0,0.0)*0.1,0.4) + min(max(t-30.,0.)*0.1,1.) * (-0.4 + abs(cos(t+result.x))*result.x*5.*distance(cellTile2(hit),cellTile2(hit*0.1+0.1))))-(cellTile2(vec3(hit*20.9))+cellTile2(hit*0.1+0.1));
+    vec2 result = raymarch(ro, rd, NUMBER_OF_MARCH_STEPS);
+        
+    if (fly < 2.) fog = pow(1. / (1. + result.x), (4.+beat2)*max(1.-min(max(t2-40.,0.0),1.),0.)*(cellTile2(hit*(1.+fly*4.))+cellTile2(hit*0.1))+ 0.17 + min(max(t-30.0,0.0)*0.1,0.4) + min(max(t-30.,0.)*0.1,1.) * ( abs(cos(t+result.x))*result.x*5.*distance(cellTile2(hit),cellTile2(hit*0.1+0.1))))-cellTile2(hit*0.1+0.1);
     else fog = result.x*0.03;
+
     vec3 materialColor = materialMap(result);
+    if (fly == 2.) materialColor = vec3(3.0-result.x*0.05);
     vec3 intersection = ro + rd*result.x;
     vec3 nrml = normal(intersection);
-    if (fly == 2.) materialColor = nrml*fog*.3+vec3(2.5-result.x*0.06);
     im++;
-    o = vec4(surfColorResul(ro, rd, nrml, reflect( rd, nrml ), result, materialColor, normalize(vec3(sin(result.x*.1),.3,-1.+fly))) * (1.7 / (1.0 + 0.4 * min(raymarch(intersection + reslast * rd * max(32.-t/4.0,7.0) / (1.0 + result.x * 0.01) , rd, NUMBER_OF_MARCH_STEPS/16).x + cellTile2(hit/0.001) * 7.,7.)  )), result.x/720.*min(max(t-30.,0.6),1.));
-
+    float thick = min(max(t2-30.,0.0),1.)*(-1.+min(raymarch(intersection + reslast * rd * max(32.-t/4.0,7.0) / (1.0 + result.x * 0.01), rd, NUMBER_OF_MARCH_STEPS/22).x+cellTile2(hit*1e7)*3.,7.));
+    
+    o = vec4(
+        surfColorResul(
+            ro, 
+            rd, 
+            nrml,
+            reflect( rd, nrml ), 
+            result, 
+            materialColor, 
+            normalize(vec3(sin(result.x*.1),.3,-1.+fly))) / (1.0 + thick/4. ), result.x/128.);
     }
 
 }
