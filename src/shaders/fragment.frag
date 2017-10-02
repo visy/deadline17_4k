@@ -138,7 +138,7 @@ vec3 materialMap(vec2 result) {
 }
 float fader = 1.0;
 float fader2 = 1.0;
-float fog;
+float fog = 0.5;
 vec3 surfColorResul(vec3 pos, vec3 rd, vec3 nrml, vec3 ref, vec2 result, vec3 materialColor, vec3 light_dir) {
     
     float dom = smoothstep( -.1, .9, ref.y);
@@ -177,11 +177,6 @@ void main()
         fader=(t-54.)*0.04;
     }
     
-    if (fly == 0.) { 
-        cz = 2779.;
-    	NUMBER_OF_MARCH_STEPS=300;
-		DISTANCE_BIAS=.2;
-    }
     if (fly==1. && t > 15. && t < 20.) cz += hex(uv*10.)*sin((t-30.)*1.9)*(1.+(t-15.)*0.1);
     
 
@@ -193,8 +188,15 @@ void main()
 
     fader = clamp(fader,0.,1.);
     float FOV = t*.1;
-    if (fly == 0.) { FOV = max(2.+t/7.-max(t-26.,0.)*64.,0.)-max(t-12.5,0.)*length(uv)/2.; }
-    else if (t > 49.) cz -= cos(hex(uv*cos(cz*0.01+uv.x*.1)*8.)*mod(t*.01,1.)+cz)*1.;
+    if (fly == 0.) { 
+        cz = 2779.;
+    	NUMBER_OF_MARCH_STEPS=100;
+		DISTANCE_BIAS=5.0-t*0.1;
+		EPSILON=.15;
+		FOV=12.-t*0.41;
+		fog = distance(vec2(0.),vec2(uv.x,uv.y))*0.4;
+    }
+    if (t > 49.) cz -= cos(hex(uv*cos(cz*0.01+uv.x*.1)*8.)*mod(t*.01,1.)+cz)*1.;
 
     if (fly == 2.) FOV = 5.+(uv.x-uv.y)*0.1;
 	
@@ -215,8 +217,8 @@ void main()
         
     vec2 result = raymarch(ro, rd, NUMBER_OF_MARCH_STEPS);
         
-    if (fly < 2.) fog = pow(1. / (1. + result.x), beat3*beat2*min(max(t - 22.,0.),10.) * 18. * max(1.-max(t-25.,0.)*0.3,0.) * fly +(4.+beat2)*max(1.-min(max(t2-40.,0.0),1.),0.)*(cellTile2(hit*(1.+fly*4.))+cellTile2(hit*0.1))+ 0.17 + min(max(t-30.0,0.0)*0.1,0.4) + min(max(t-30.,0.)*0.1,1.) * ( abs(cos(t+result.x))*result.x*5.*distance(cellTile2(hit),cellTile2(hit*0.1+0.1))))-cellTile2(hit*0.1+0.1);
-    else fog = result.x*0.03;
+    if (fly == 1.) fog = pow(1. / (1. + result.x), beat3*beat2*min(max(t - 22.,0.),10.) * 18. * max(1.-max(t-25.,0.)*0.3,0.) * fly +(4.+beat2)*max(1.-min(max(t2-40.,0.0),1.),0.)*(cellTile2(hit*(1.+fly*4.))+cellTile2(hit*0.1))+ 0.17 + min(max(t-30.0,0.0)*0.1,0.4) + min(max(t-30.,0.)*0.1,1.) * ( abs(cos(t+result.x))*result.x*5.*distance(cellTile2(hit),cellTile2(hit*0.1+0.1))))-cellTile2(hit*0.1+0.1);
+    else if (fog == 2.) result.x*0.03;
     vec3 materialColor = materialMap(result);
     if (fly == 2.) materialColor = vec3(3.0-result.x*0.05);
     vec3 intersection = ro + rd*result.x;
