@@ -141,14 +141,14 @@ void main( ) {
 
     fader = clamp(fader,0.,1.);
         
+    FOV = FOV * min(max(t - 4.25,0.),1.) + min(max(t - 15.,0.),10.) * 8. * max(1.-max(t-21.,0.)*0.3,0.);
     if (fly == 0.) { 
         cz = 2779.;
 		DISTANCE_BIAS=5.0-t*0.1;
 		EPSILON=.15;
 		FOV=12.-t*0.41;
 		fog = distance(vec2(0.),vec2(uv.x,uv.y))*0.4;
-    } else 
-        FOV = FOV * min(max(t - 4.25,0.),1.) + min(max(t - 15.,0.),10.) * 8. * max(1.-max(t-21.,0.)*0.3,0.);
+    }  
     if (t > 49.) cz -= cos(hex(uv*cos(cz*0.01+uv.x*.1)*8.)*mod(t*.01,1.)+cz)*1.;
 
     vec3 camera_origin = vec3(0., 1., cz);
@@ -160,8 +160,9 @@ void main( ) {
     
     vec3 ro = camera_origin;
     vec3 rd = normalize(forward + FOV*uv.x*right + FOV*uv.y*up);
+    if (fly==0.) rd.z+=cos(rd.z*10.+beat2*3.142+0.6)*min(max(t-12.5,0.)*0.01,.05);
         
-    vec2 result = raymarch(ro, rd, 350);
+    vec2 result = raymarch(ro, rd, 200);
         
     if (fly == 1.) fog = pow(1. / (1. + result.x), beat3*beat2*min(max(t - 18.,0.),10.) * 18. * max(1.-max(t-22.,0.)*0.3,0.) * fly +(4.+beat2)*max(1.-min(max(t2-40.,0.0),1.),0.)*(cellTile2(hit*(1.+fly*4.))+cellTile2(hit*0.1))+ 0.17 + min(max(t-30.0,0.0)*0.1,0.4) + min(max(t-30.,0.)*0.1,1.) * ( abs(cos(t+result.x))*result.x*5.*distance(cellTile2(hit),cellTile2(hit*0.1+0.1))))-cellTile2(hit*0.1+0.1);
     if (fly == 2.) fog = result.x*0.03;
@@ -174,11 +175,10 @@ void main( ) {
     vec3 intersection = ro + rd*result.x;
         
     vec3 eps = vec3(EPSILON,0.,0.);
-    vec3 nor = vec3(
+    vec3 nrml = normalize(vec3(
         sceneb(intersection+eps.xyy) - sceneb(intersection-eps.xyy),
         sceneb(intersection+eps.yxy) - sceneb(intersection-eps.yxy),
-        sceneb(intersection+eps.yyx) - sceneb(intersection-eps.yyx) );
-    vec3 nrml = normalize(nor);
+        sceneb(intersection+eps.yyx) - sceneb(intersection-eps.yyx) ) );
     im++;
     vec3 ref = reflect( rd, nrml );
     vec3 light_dir = normalize(vec3(sin(result.x*.1),.3,-1.+fly));
@@ -190,7 +190,7 @@ void main( ) {
     float s = LdotV - NdotL * NdotV;
 
     float sigma2 = .3*fly * .3*fly;
-    float diffuse =  .6*fly * max(0., NdotL) * (1. + sigma2 * (.6*fly / (sigma2 + .13) + .5 / (sigma2 + .33)) + .45 * sigma2 / (sigma2 + .09) * s /  mix(1., max(NdotL, NdotV), step(0., s))) / 3.14159;
+    float diffuse =  .6*fly * max(0., NdotL) * (1. + sigma2 * (.6*fly / (sigma2 + .13) + .5 / (sigma2 + .33)) + .45 * sigma2 / (sigma2 + .09) * s /  mix(1., max(NdotL, NdotV), step(0., s))) / 3.142;
 
     
     vec3 surfColorResul = mix(vec3(diffuse),( materialColor * (diffuse * vec3(1.) + vec3(1.)))*fog+smoothstep( -.1, .9, ref.y)*.2+pow(clamp( dot( ref, light_dir ), 0., 1. ),12.0)*.6,fader)*fader2;
