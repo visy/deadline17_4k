@@ -12,10 +12,10 @@ void main() {
         float s2 = s1;
 		s1 = fract(sin(dot(float(1-t)+dot(uv,uv+right), 12.9898)) * 43758.5453);
 		vec2 f = 0.01*(-1.0+2.0*vec2(s1,s2));
-		j += texture(o, uv+(blr+0.001)/2.*vec2(s1-.5,s2-.5));
+		j += texture(o, uv+(blr+0.002)/5.*vec2(s1-.5,s2-.5));
 	}
 	j /= vec4(66.);
     j -= s1/16.;
-	i = (j - blr);
+	i = j - blr;
 
 }

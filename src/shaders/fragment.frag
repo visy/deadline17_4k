@@ -2,10 +2,9 @@
 uniform int m;
 out vec4 o;
 float t = m/float(44100);
-int NUMBER_OF_MARCH_STEPS=350;
 float EPSILON=.1;
 float DISTANCE_BIAS=.4;
-float beat, beat1, beat2, beat3, beatsin;
+float beat, beat1, beat2, beat3;
 
 float fly = 1.;
 void pR(inout vec2 p, float a) {
@@ -35,9 +34,7 @@ float cellTile2(vec3 p){
     return min(d.x, d.y)*.5; 
 }
 float bump(vec3 pos) {
-    float re = 0.;
-    re += cellTile2(pos*.25) * cellTile2(pos*1.1) * 3. + cellTile2(pos*0.2) * cellTile2(pos*4.4) * .5;
-    return re;
+    return cellTile2(pos*.25) * cellTile2(pos*1.1) * 3. + cellTile2(pos*0.2) * cellTile2(pos*4.4) * .5;
 }
 
 
@@ -103,57 +100,12 @@ vec2 raymarch(vec3 position, vec3 direction, int steps)
     }
     return vec2(max(1.0,total_distance)+(1.-im)*700., acc);
 }
-vec3 normal( vec3 pos )
-{
-    vec3 eps = vec3(EPSILON,0.,0.);
-    vec3 nor = vec3(
-        sceneb(pos+eps.xyy) - sceneb(pos-eps.xyy),
-        sceneb(pos+eps.yxy) - sceneb(pos-eps.yxy),
-        sceneb(pos+eps.yyx) - sceneb(pos-eps.yyx) );
-    return normalize(nor);
-}
-
-
-
-float orenNayarDiffuse(
-  vec3 lightDirection,
-  vec3 viewDirection,
-  vec3 surfaceNormal,
-  float roughness,
-  float albedo) {
-  
-  float LdotV = dot(lightDirection, viewDirection);
-  float NdotL = dot(lightDirection, surfaceNormal);
-  float NdotV = dot(surfaceNormal, viewDirection);
-
-  float s = LdotV - NdotL * NdotV;
-
-  float sigma2 = roughness * roughness;
-  return albedo * max(0., NdotL) * (1. + sigma2 * (albedo / (sigma2 + .13) + .5 / (sigma2 + .33)) + .45 * sigma2 / (sigma2 + .09) * s /  mix(1., max(NdotL, NdotV), step(0., s))) / 3.14159;
-}
-vec3 materialMap(vec2 result) {
-    vec3 materialColor = vec3(1.3-result.x*.01*.5,.9-cos(result.x*.1)*.5,1.*.5);
-    materialColor -= vec3(.4,4.7,8.0)*(bump(hit)+bump(hit*.2*vec3(1.,1.,4.))*1.5);
-    return materialColor;
-}
 float fader = 1.0;
 float fader2 = 1.0;
-float fog = 0.5;
-vec3 surfColorResul(vec3 pos, vec3 rd, vec3 nrml, vec3 ref, vec2 result, vec3 materialColor, vec3 light_dir) {
-    
-    float dom = smoothstep( -.1, .9, ref.y);
-    float spe = pow(clamp( dot( ref, light_dir ), 0., 1. ),12.0);
+float fog;
 
-    float diffuse = orenNayarDiffuse(light_dir,rd,nrml,.3*fly,.6*fly)-result.y*.05;
-    
-    vec3 diffuseLit = materialColor * (diffuse * vec3(1.) + vec3(1.));
-    vec3 outColor = diffuseLit*fog+dom*.2+spe*.6;
-    return mix(vec3(diffuse),outColor,fader)*fader2;
-}
+void main( ) {
 
-
-void main()
-{
     // pixel coordinates
     vec2 uv = (-vec2(1280.,720.) + 2.*(gl_FragCoord.xy))/720.;
     if( -abs(uv.y)+0.8>0.0){
@@ -164,17 +116,18 @@ void main()
     beat1 = mod(beat,1.);
     beat2 = mod(beat,2.);
     beat3 = mod(beat*8.,1.);
-    beatsin = sin(beat1*3.141591*2.);
     if (t < 29.25) fly = 0.;
     if (t > 81.) fader=1.-(t-81.)*0.335;
     if (t > 84.) fly = 2.;
     if (fly >= 1.) t-=25.;
 
+    float FOV = t*.1;
     float cz = t*9.9;
     if (fly == 2.) {
 		t-=5.;
         cz=1000.-((t-54.)*0.5+t*0.15);
         fader=(t-54.)*0.04;
+        FOV = 5.+(uv.x-uv.y)*0.1;
     }
     
     if (fly==1. && t > 15. && t < 20.) cz += hex(uv*10.)*sin((t-30.)*1.9)*(1.+(t-15.)*0.1);
@@ -187,24 +140,17 @@ void main()
     uv*=fader2;
 
     fader = clamp(fader,0.,1.);
-    float FOV = t*.1;
+        
     if (fly == 0.) { 
         cz = 2779.;
-    	NUMBER_OF_MARCH_STEPS=100;
 		DISTANCE_BIAS=5.0-t*0.1;
 		EPSILON=.15;
 		FOV=12.-t*0.41;
 		fog = distance(vec2(0.),vec2(uv.x,uv.y))*0.4;
-    }
+    } else 
+        FOV = FOV * min(max(t - 4.25,0.),1.) + min(max(t - 15.,0.),10.) * 8. * max(1.-max(t-21.,0.)*0.3,0.);
     if (t > 49.) cz -= cos(hex(uv*cos(cz*0.01+uv.x*.1)*8.)*mod(t*.01,1.)+cz)*1.;
 
-    if (fly == 2.) FOV = 5.+(uv.x-uv.y)*0.1;
-	
-    if (fly>0.) { 
-	FOV *= min(max(t - 4.25,0.),1.);
-	FOV += min(max(t - 15.,0.),10.) * 8. * max(1.-max(t-21.,0.)*0.3,0.);
-	}
-	
     vec3 camera_origin = vec3(0., 1., cz);
     
     vec3 forward = normalize(vec3(0.,1.,cz+1.)-camera_origin);
@@ -215,26 +161,42 @@ void main()
     vec3 ro = camera_origin;
     vec3 rd = normalize(forward + FOV*uv.x*right + FOV*uv.y*up);
         
-    vec2 result = raymarch(ro, rd, NUMBER_OF_MARCH_STEPS);
+    vec2 result = raymarch(ro, rd, 350);
         
-    if (fly == 1.) fog = pow(1. / (1. + result.x), beat3*beat2*min(max(t - 22.,0.),10.) * 18. * max(1.-max(t-25.,0.)*0.3,0.) * fly +(4.+beat2)*max(1.-min(max(t2-40.,0.0),1.),0.)*(cellTile2(hit*(1.+fly*4.))+cellTile2(hit*0.1))+ 0.17 + min(max(t-30.0,0.0)*0.1,0.4) + min(max(t-30.,0.)*0.1,1.) * ( abs(cos(t+result.x))*result.x*5.*distance(cellTile2(hit),cellTile2(hit*0.1+0.1))))-cellTile2(hit*0.1+0.1);
-    else if (fog == 2.) result.x*0.03;
-    vec3 materialColor = materialMap(result);
+    if (fly == 1.) fog = pow(1. / (1. + result.x), beat3*beat2*min(max(t - 18.,0.),10.) * 18. * max(1.-max(t-22.,0.)*0.3,0.) * fly +(4.+beat2)*max(1.-min(max(t2-40.,0.0),1.),0.)*(cellTile2(hit*(1.+fly*4.))+cellTile2(hit*0.1))+ 0.17 + min(max(t-30.0,0.0)*0.1,0.4) + min(max(t-30.,0.)*0.1,1.) * ( abs(cos(t+result.x))*result.x*5.*distance(cellTile2(hit),cellTile2(hit*0.1+0.1))))-cellTile2(hit*0.1+0.1);
+    if (fly == 2.) fog = result.x*0.03;
+
+
+    vec3 materialColor = vec3(1.3-result.x*.01*.5,.9-cos(result.x*.1)*.5,1.*.5) - vec3(.4,4.7,8.0)*(bump(hit)+bump(hit*.2*vec3(1.,1.,4.))*1.5);
+
+
     if (fly == 2.) materialColor = vec3(3.0-result.x*0.05);
     vec3 intersection = ro + rd*result.x;
-    vec3 nrml = normal(intersection);
+        
+    vec3 eps = vec3(EPSILON,0.,0.);
+    vec3 nor = vec3(
+        sceneb(intersection+eps.xyy) - sceneb(intersection-eps.xyy),
+        sceneb(intersection+eps.yxy) - sceneb(intersection-eps.yxy),
+        sceneb(intersection+eps.yyx) - sceneb(intersection-eps.yyx) );
+    vec3 nrml = normalize(nor);
     im++;
-    float thick = min(max(t2-30.,0.0),1.)*(-1.+min(raymarch(intersection + reslast * rd * max(32.-t/4.0,7.0) / (1.0 + result.x * 0.01), rd, NUMBER_OF_MARCH_STEPS/22).x+cellTile2(hit*1e7)*3.,7.));
+    vec3 ref = reflect( rd, nrml );
+    vec3 light_dir = normalize(vec3(sin(result.x*.1),.3,-1.+fly));
+
+    float LdotV = dot(light_dir, rd);
+    float NdotL = dot(light_dir, nrml);
+    float NdotV = dot(nrml, rd);
+
+    float s = LdotV - NdotL * NdotV;
+
+    float sigma2 = .3*fly * .3*fly;
+    float diffuse =  .6*fly * max(0., NdotL) * (1. + sigma2 * (.6*fly / (sigma2 + .13) + .5 / (sigma2 + .33)) + .45 * sigma2 / (sigma2 + .09) * s /  mix(1., max(NdotL, NdotV), step(0., s))) / 3.14159;
+
     
-    o = vec4(
-        surfColorResul(
-            ro, 
-            rd, 
-            nrml,
-            reflect( rd, nrml ), 
-            result, 
-            materialColor, 
-            normalize(vec3(sin(result.x*.1),.3,-1.+fly))) / (1.0 + thick/4. ), result.x/128.);
+    vec3 surfColorResul = mix(vec3(diffuse),( materialColor * (diffuse * vec3(1.) + vec3(1.)))*fog+smoothstep( -.1, .9, ref.y)*.2+pow(clamp( dot( ref, light_dir ), 0., 1. ),12.0)*.6,fader)*fader2;
+
+
+    o = vec4(1.2*surfColorResul / (1.0 + min(max(t2-30.,0.0),1.)*(-1.+min(raymarch(intersection + reslast * rd * max(32.-t/4.0,7.0) / (1.0 + result.x * 0.01), rd, 32).x+cellTile2(hit*1e6)*2.,7.))/3. ), result.x/128.);
     }
 
 }

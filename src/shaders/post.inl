@@ -14,7 +14,7 @@ const char* post =
        "float e=t;"
        "t=fract(sin(dot(float(1-o)+dot(s,s+d),12.9898))*43758.5);"
        "vec2 r=.01*(-1+2*vec2(t,e));"
-       "f+=texture(m,s+(i+.001)/2*vec2(t-.5,e-.5));"
+       "f+=texture(m,s+(i+.002)/5*vec2(t-.5,e-.5));"
      "}"
    "f/=vec4(66);"
    "f-=t/16;"
