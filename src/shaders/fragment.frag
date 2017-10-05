@@ -4,13 +4,18 @@ out vec4 o;
 float t = m/float(44100);
 float EPSILON=.1;
 float DISTANCE_BIAS=.4;
-float beat, beat1, beat2, beat3;
+float beat, beat2, beat3;
 
 float fly = 1.;
+vec3 hit;
+float reslast;
+float im = 0.;
+float fader = 1.0;
+float fader2 = 1.0;
+float fog;
 void pR(inout vec2 p, float a) {
     p = cos(a)*p + sin(a)*vec2(p.y, -p.x);
 }
-vec3 hit;
 
 float celli(vec3 p){ p = fract(p)-.5; return dot(p, p); }
 
@@ -62,23 +67,17 @@ void rota(inout vec3 pos) {
     if (fly == 2.) r3(pos);
 }
 
-float scene2(vec3 pos)
-{
-    vec3 translate = vec3(-0.5*cos(pos.z*.01), -.2*sin(.005*pos.z*cos(pos.z*4.5+pos.z*.5+pos.z*5.)*.1), 0.);
-    if (fly != 1.) rota(pos);
-    hit = pos;
-    return sp(pos - translate,pos);
-}
-
 float sceneb(vec3 pos) {
     rota(pos);
     float of = .3*sin(pos.z*5.5);
     float R1= sp(pos - vec3(of, -of, cos(pos.z)*.5),pos);
-    return min(R1,scene2(pos))-bump(hit+cos(pos.z*.3)*3.)*1.5;
+    vec3 translate = vec3(-0.5*cos(pos.z*.01), -.2*sin(.005*pos.z*cos(pos.z*4.5+pos.z*.5+pos.z*5.)*.1), 0.);
+    if (fly != 1.) rota(pos);
+    hit = pos;
+    float R2 = sp(pos - translate,pos);
+    return min(R1,R2)-bump(hit+cos(pos.z*.3)*3.)*1.5;
 }
 
-float reslast;
-float im = 0.;
 vec2 raymarch(vec3 position, vec3 direction, int steps)
 {
     float total_distance = .005;
@@ -100,9 +99,6 @@ vec2 raymarch(vec3 position, vec3 direction, int steps)
     }
     return vec2(max(1.0,total_distance)+(1.-im)*700., acc);
 }
-float fader = 1.0;
-float fader2 = 1.0;
-float fog;
 
 void main( ) {
 
@@ -113,7 +109,6 @@ void main( ) {
     float t2 = t;
     float t3 = t-28.;
     beat = 132.0/60.0 * t;
-    beat1 = mod(beat,1.);
     beat2 = mod(beat,2.);
     beat3 = mod(beat*8.,1.);
     if (t < 29.25) fly = 0.;
@@ -136,8 +131,7 @@ void main( ) {
 
     if (t > 90.) { fader2-=(t-90.)*.1;}
     
-    uv*=fader;
-    uv*=fader2;
+    uv*=fader*fader2;
 
     fader = clamp(fader,0.,1.);
         
@@ -162,7 +156,7 @@ void main( ) {
     vec3 rd = normalize(forward + FOV*uv.x*right + FOV*uv.y*up);
     if (fly==0.) rd.z+=cos(rd.z*10.+beat2*3.142+0.6)*min(max(t-12.5,0.)*0.01,.05);
         
-    vec2 result = raymarch(ro, rd, 200);
+    vec2 result = raymarch(ro, rd, 180);
         
     if (fly == 1.) fog = pow(1. / (1. + result.x), beat3*beat2*min(max(t - 18.,0.),10.) * 18. * max(1.-max(t-22.,0.)*0.3,0.) * fly +(4.+beat2)*max(1.-min(max(t2-40.,0.0),1.),0.)*(cellTile2(hit*(1.+fly*4.))+cellTile2(hit*0.1))+ 0.17 + min(max(t-30.0,0.0)*0.1,0.4) + min(max(t-30.,0.)*0.1,1.) * ( abs(cos(t+result.x))*result.x*5.*distance(cellTile2(hit),cellTile2(hit*0.1+0.1))))-cellTile2(hit*0.1+0.1);
     if (fly == 2.) fog = result.x*0.03;
@@ -192,11 +186,7 @@ void main( ) {
     float sigma2 = .3*fly * .3*fly;
     float diffuse =  .6*fly * max(0., NdotL) * (1. + sigma2 * (.6*fly / (sigma2 + .13) + .5 / (sigma2 + .33)) + .45 * sigma2 / (sigma2 + .09) * s /  mix(1., max(NdotL, NdotV), step(0., s))) / 3.142;
 
-    
-    vec3 surfColorResul = mix(vec3(diffuse),( materialColor * (diffuse * vec3(1.) + vec3(1.)))*fog+smoothstep( -.1, .9, ref.y)*.2+pow(clamp( dot( ref, light_dir ), 0., 1. ),12.0)*.6,fader)*fader2;
-
-
-    o = vec4(1.2*surfColorResul / (1.0 + min(max(t2-30.,0.0),1.)*(-1.+min(raymarch(intersection + reslast * rd * max(32.-t/4.0,7.0) / (1.0 + result.x * 0.01), rd, 32).x+cellTile2(hit*1e6)*2.,7.))/3. ), result.x/128.);
+    o = vec4(1.2*mix(vec3(diffuse),( materialColor * (diffuse * vec3(1.) + vec3(1.)))*fog+smoothstep( -.1, .9, ref.y)*.2+pow(clamp( dot( ref, light_dir ), 0., 1. ),12.0)*.6,fader)*fader2 / (1.0 + min(max(t2-30.,0.0),1.)*(-1.+min(raymarch(intersection + reslast * rd * max(32.-t/4.0,7.0) / (1.0 + result.x * 0.01), rd, 32).x+cellTile2(hit*1e6)*2.,7.))/3. ), result.x/128.);
     }
 
 }
